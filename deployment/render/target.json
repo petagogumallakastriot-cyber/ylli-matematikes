@@ -1,0 +1,13 @@
+{
+  "provider": "neon",
+  "projectName": "ylli-matematikes",
+  "projectId": "spring-salad-87106747",
+  "branchId": "br-misty-thunder-b9oliiqj",
+  "branchName": "production",
+  "databaseName": "ylli",
+  "ownerRole": "ylli_owner",
+  "region": "aws-eu-central-1",
+  "planAtCreation": "free",
+  "initialSchemaApplied": true,
+  "renderPublished": false
+}

@@ -1,0 +1,380 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 1.0.0
+  description: Ylli i Matematikës
+servers:
+  - url: /api
+paths:
+  /math/auth/register:
+    post:
+      operationId: registerLearner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LearnerRegistration" }
+      responses:
+        "201":
+          description: Registered and signed in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProfileState" }
+  /math/auth/login:
+    post:
+      operationId: loginLearner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LearnerLogin" }
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProfileState" }
+  /math/auth/logout:
+    post:
+      operationId: logoutLearner
+      responses:
+        "204": { description: Signed out }
+  /math/auth/legacy:
+    post:
+      operationId: continueLegacyLogin
+      responses:
+        "204": { description: Explicitly allow existing email account migration }
+  /math/auth/pin:
+    post:
+      operationId: setLearnerPin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PinInput" }
+      responses:
+        "200":
+          description: PIN linked to existing profile without losing progress
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Profile" }
+  /healthz:
+    get:
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+  /math/profile:
+    delete:
+      operationId: deleteProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PinInput" }
+      responses:
+        "204": { description: Profile and learning data permanently deleted }
+    get:
+      operationId: getProfile
+      responses:
+        "200":
+          description: Current learner or visitor
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProfileState" }
+    patch:
+      operationId: updateProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProfileInput" }
+      responses:
+        "200":
+          description: Saved profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Profile" }
+  /math/grades:
+    get:
+      operationId: getGrades
+      responses:
+        "200":
+          description: Nine grades with progress
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Grade" }
+  /math/grades/{grade}/lessons:
+    get:
+      operationId: getLessons
+      parameters:
+        - { name: grade, in: path, required: true, schema: { type: integer, minimum: 1, maximum: 9 } }
+      responses:
+        "200":
+          description: Fifteen lessons
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Lesson" }
+  /math/grades/{grade}/lessons/{lesson}:
+    get:
+      operationId: getLesson
+      parameters:
+        - { name: grade, in: path, required: true, schema: { type: integer, minimum: 1, maximum: 9 } }
+        - { name: lesson, in: path, required: true, schema: { type: integer, minimum: 1, maximum: 15 } }
+      responses:
+        "200":
+          description: Lesson and teaching tables
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LessonDetail" }
+  /math/sessions:
+    post:
+      operationId: startSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SessionInput" }
+      responses:
+        "200":
+          description: Practice attempt
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PracticeSession" }
+  /math/sessions/{id}/answers:
+    post:
+      operationId: submitAnswer
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnswerInput" }
+      responses:
+        "200":
+          description: Validated answer and updated attempt
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnswerResult" }
+  /math/leaderboard:
+    get:
+      operationId: getLeaderboard
+      parameters:
+        - { name: grade, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 9 } }
+      responses:
+        "200":
+          description: Real learners ranked by earned hearts
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/LeaderboardEntry" }
+  /math/dashboard:
+    get:
+      operationId: getDashboard
+      responses:
+        "200":
+          description: Learning summary and recent activity
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Dashboard" }
+components:
+  schemas:
+    PinInput:
+      type: object
+      required: [pin]
+      properties:
+        pin: { type: string, pattern: '^[0-9]{6}$' }
+    LearnerLogin:
+      type: object
+      required: [nickname, pin]
+      properties:
+        nickname: { type: string, minLength: 2, maxLength: 24 }
+        pin: { type: string, pattern: '^[0-9]{6}$' }
+    LearnerRegistration:
+      allOf:
+        - { $ref: "#/components/schemas/ProfileInput" }
+        - { $ref: "#/components/schemas/PinInput" }
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string }
+    ProfileState:
+      type: object
+      required: [authenticated, profile]
+      properties:
+        authenticated: { type: boolean }
+        profile:
+          oneOf:
+            - { $ref: "#/components/schemas/Profile" }
+            - { type: "null" }
+    ProfileInput:
+      type: object
+      required: [nickname, grade, avatar, publicRanking, firstName, lastName, age, gender]
+      properties:
+        gender: { type: string, enum: [male, female] }
+        language: { type: string, enum: [sq, en, el, it] }
+        firstName: { type: string, minLength: 1, maxLength: 50 }
+        lastName: { type: string, minLength: 1, maxLength: 50 }
+        age: { type: integer, minimum: 4, maximum: 18 }
+        nickname: { type: string, minLength: 2, maxLength: 24 }
+        grade: { type: integer, minimum: 1, maximum: 9 }
+        avatar: { type: string, enum: [fox, bear, rabbit, cat, owl, panda] }
+        publicRanking: { type: boolean }
+    Profile:
+      type: object
+      required: [id, nickname, grade, avatar, publicRanking, xp, hearts, stars, level, completedLessons, streak, firstName, lastName, age, gender, language, hasPin]
+      properties:
+        gender: { type: [string, "null"], enum: [male, female, null] }
+        language: { type: string, enum: [sq, en, el, it] }
+        hasPin: { type: boolean }
+        firstName: { type: string }
+        lastName: { type: string }
+        age: { type: ["integer", "null"] }
+        id: { type: string }
+        nickname: { type: string }
+        grade: { type: integer }
+        avatar: { type: string }
+        publicRanking: { type: boolean }
+        xp: { type: integer }
+        hearts: { type: integer }
+        stars: { type: integer }
+        level: { type: integer }
+        completedLessons: { type: integer }
+        streak: { type: integer }
+    Grade:
+      type: object
+      required: [grade, title, description, topics, totalLessons, completedLessons, stars]
+      properties:
+        grade: { type: integer }
+        title: { type: string }
+        description: { type: string }
+        topics:
+          type: array
+          items: { type: string }
+        totalLessons: { type: integer }
+        completedLessons: { type: integer }
+        stars: { type: integer }
+    Lesson:
+      type: object
+      required: [id, grade, title, description, operation, difficulty, stars, completed, locked, exerciseCount, hasTable]
+      properties:
+        id: { type: integer }
+        grade: { type: integer }
+        title: { type: string }
+        description: { type: string }
+        operation: { type: string, enum: [compare, addition, subtraction, multiplication, division, mixed] }
+        difficulty: { type: string }
+        stars: { type: integer }
+        completed: { type: boolean }
+        locked: { type: boolean }
+        exerciseCount: { type: integer }
+        hasTable: { type: boolean }
+    LessonDetail:
+      type: object
+      required: [lesson, introduction, table]
+      properties:
+        lesson: { $ref: "#/components/schemas/Lesson" }
+        introduction: { type: string }
+        table:
+          type: array
+          items: { $ref: "#/components/schemas/TableRow" }
+    TableRow:
+      type: object
+      required: [a, b, operator, result]
+      properties:
+        a: { type: number }
+        b: { type: number }
+        operator: { type: string }
+        result: { type: number }
+    SessionInput:
+      type: object
+      required: [grade, lesson]
+      properties:
+        grade: { type: integer, minimum: 1, maximum: 9 }
+        lesson: { type: integer, minimum: 1, maximum: 15 }
+    Exercise:
+      type: object
+      required: [id, a, b, operator, prompt]
+      properties:
+        id: { type: integer }
+        a: { type: number }
+        b: { type: number }
+        operator: { type: string }
+        prompt: { type: string }
+    PracticeSession:
+      type: object
+      required: [id, grade, lesson, lives, stars, correctCount, answeredCount, totalQuestions, status, guest, exercises]
+      properties:
+        id: { type: string }
+        grade: { type: integer }
+        lesson: { type: integer }
+        lives: { type: integer }
+        stars: { type: integer }
+        correctCount: { type: integer }
+        answeredCount: { type: integer }
+        totalQuestions: { type: integer }
+        status: { type: string, enum: [active, completed, failed] }
+        guest: { type: boolean }
+        exercises:
+          type: array
+          items: { $ref: "#/components/schemas/Exercise" }
+    AnswerInput:
+      type: object
+      required: [exerciseId, answer]
+      properties:
+        exerciseId: { type: integer, minimum: 0, maximum: 11 }
+        answer: { type: number }
+    AnswerResult:
+      type: object
+      required: [correct, correctAnswer, message, earnedXp, earnedHearts, session]
+      properties:
+        correct: { type: boolean }
+        correctAnswer: { type: number }
+        message: { type: string }
+        earnedXp: { type: integer }
+        earnedHearts: { type: integer }
+        session: { $ref: "#/components/schemas/PracticeSession" }
+    LeaderboardEntry:
+      type: object
+      required: [rank, nickname, avatar, grade, hearts, xp, level, isMe]
+      properties:
+        rank: { type: integer }
+        nickname: { type: string }
+        avatar: { type: string }
+        grade: { type: integer }
+        hearts: { type: integer }
+        xp: { type: integer }
+        level: { type: integer }
+        isMe: { type: boolean }
+    Activity:
+      type: object
+      required: [title, grade, stars, date]
+      properties:
+        title: { type: string }
+        grade: { type: integer }
+        stars: { type: integer }
+        date: { type: string }
+    Dashboard:
+      type: object
+      required: [dailyGoal, dailyCompleted, totalLessons, completedLessons, accuracy, nextGrade, nextLesson, recentActivity]
+      properties:
+        dailyGoal: { type: integer }
+        dailyCompleted: { type: integer }
+        totalLessons: { type: integer }
+        completedLessons: { type: integer }
+        accuracy: { type: number }
+        nextGrade: { type: integer }
+        nextLesson: { type: integer }
+        recentActivity:
+          type: array
+          items: { $ref: "#/components/schemas/Activity" }

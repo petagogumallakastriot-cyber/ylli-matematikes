@@ -1,0 +1,24 @@
+# One FREE web service; the database is Neon Free, not Render Postgres.
+services:
+  - type: web
+    name: ylli-matematikes
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm run build:render
+    startCommand: pnpm run start:render
+    healthCheckPath: /api/healthz
+    autoDeployTrigger: "off"
+    envVars:
+      - key: NODE_VERSION
+        value: 24.22.1
+      - key: NODE_ENV
+        value: production
+      - key: SERVE_WEB
+        value: "true"
+      - key: PIN_ONLY
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
