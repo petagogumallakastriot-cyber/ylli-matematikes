@@ -50,12 +50,14 @@ Alternativë nëse krijon shërbimin manualisht:
 
 - Runtime: Node, versioni `24.22.1`; root directory bosh (rrënja e depos).
 - Plan: **Free**; region: Frankfurt.
-- Build: `corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm run build:render`
+- Build: `pnpm install --frozen-lockfile --prod=false && pnpm run build:render`
 - Start: `pnpm run start:render`
 - Health check: `/api/healthz`
 - Env: `NODE_ENV=production`, `SERVE_WEB=true`, `PIN_ONLY=true`,
   `DATABASE_URL` nga Neon, `SESSION_SECRET` i rastësishëm me të paktën 32 karaktere.
 - Mos vendos `PORT`: Render e cakton vetë. Mos vendos çelësa Clerk apo Replit.
+- Mos shto `corepack enable`: ai përpiqet të ndryshojë skedarë sistemi që
+  Render i mban vetëm për lexim. Komanda përdor `pnpm` ekzistues.
 
 Nisja krijon tabelat vetëm në Neon dhe vetëm në një databazë të re pa tabela
 `math_*`. Ndryshimet ruhen në një transaksion. Rinisjet nuk e fshijnë progresin.

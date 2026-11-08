@@ -17,6 +17,8 @@ test("Render blueprint creates only a free service and disables automatic deploy
   assert.equal([...blueprint.matchAll(/^\s+- type: web$/gm)].length, 1);
   assert.match(blueprint, /^\s+plan: free$/m);
   assert.match(blueprint, /^\s+autoDeployTrigger: "off"$/m);
+  assert.doesNotMatch(blueprint, /corepack\s+enable/);
+  assert.match(blueprint, /buildCommand: pnpm install --frozen-lockfile --prod=false && pnpm run build:render/);
   assert.doesNotMatch(blueprint, /^databases:/m);
 });
 
